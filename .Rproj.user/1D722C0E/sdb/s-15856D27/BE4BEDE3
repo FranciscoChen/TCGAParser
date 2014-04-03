@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1394465425817.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "BE4BEDE3",
+    "lastKnownWriteTime" : 60371680,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "reference",
+        "contentUrl" : "content?title=reference&file=bc395e512d864a419a53c66292f1849e.htm",
+        "displayedObservations" : "1000",
+        "displayedVariables" : 3,
+        "totalObservations" : "239322",
+        "variables" : "5"
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}

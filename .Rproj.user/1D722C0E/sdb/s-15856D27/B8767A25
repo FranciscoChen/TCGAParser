@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1394718463101.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "B8767A25",
+    "lastKnownWriteTime" : 137438953504,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "pairedBarcodes",
+        "contentUrl" : "content?title=pairedBarcodes&file=be8fbf1699b04a3eaa083510e1f53f43.htm",
+        "displayedObservations" : 256,
+        "displayedVariables" : 28,
+        "totalObservations" : 256,
+        "variables" : 27
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}
