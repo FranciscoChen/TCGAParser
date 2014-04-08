@@ -394,39 +394,6 @@ analyzeNAs <- function (cancer, array){
   write.table(sampleTable, paste(writePath, "/", cancerName, "_", arrayName, "_sample_NA.txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE) 
 }
 
-#' Print code for PostgreSQL
-#' 
-#' Print the code to create the table in the PostgreSQL database (needs the file from pairBarcodes).
-#' 
-#' @include init
-#' @usage printPostgreSQLCode(cancer, array)
-#' @details The print will be displayed on the console.
-printPostgreSQLCode <- function (cancer, array){
-  init(cancer, array)
-  samples <- read.table(paste(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt", sep = ""), sep = "\t", header = TRUE)
-  
-  code <- paste ("CREATE TABLE ", cancerName, ".", arrayName, "( \n", sep = "")
-  switch(array,
-         humanmethylation450 = {
-           varchar <- "10"
-         },
-         illuminahiseq_rnaseqv2 = {
-           varchar <- "18"
-         }
-  )
-  probe <- paste ("probe VARCHAR(", varchar, "),\n", sep = "")
-  code <- paste (code, probe)
-  for (i in 1:length(colnames(samples))){
-    expression <- paste (colnames(samples)[i], " FLOAT(4),\n", sep = "", collapse = NULL)
-    code <- paste (code, expression)
-  }
-  code <- paste (code, paste("CONSTRAINT pk_", cancerName, "_probe PRIMARY KEY (probe), \n", sep = ""))
-  code <- paste (code, paste ("FOREIGN KEY (probe) REFERENCES ", cancerName, ".", arrayName, "_probeinfo(probe) \n );", sep = ""))
-  
-  return (cat(code))
-}
-
-
 #' Generate a TCGA barcode pairing table
 #' 
 #' For each tumor's humanmethylation450/ get the number of matching barcodes in agilentg4502a_07_3/, illuminaga_rnaseq/, illuminaga_rnaseqv2/, illuminahiseq_rnaseq/ and illuminahiseq_rnaseqv2/.
@@ -502,6 +469,416 @@ generatePairingTable <- function () {
     }
   }
   write.table(barcodePairing, paste(writePath, "/", "barcodePairing.txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE)
+}
+
+#' Print code for PostgreSQL
+#' 
+#' Print the code to create the table in the PostgreSQL database (needs the sampleinfo file from filterBarcodes).
+#' 
+#' @include init
+#' @usage printPostgreSQLCode(cancer, array)
+#' @details The print will be displayed on the console.
+printPostgreSQLCode <- function (cancer, array){
+  init(cancer, array)
+  samples <- read.table(paste(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt", sep = ""), sep = "\t", header = TRUE)
+  
+  code <- paste ("CREATE TABLE ", cancerName, ".", arrayName, "(", sep = "")
+  switch(array,
+         humanmethylation450 = {
+           varchar <- "10"
+         },
+         illuminahiseq_rnaseqv2 = {
+           varchar <- "18"
+         }
+  )
+  probe <- paste ("probe VARCHAR(", varchar, "),", sep = "")
+  code <- paste (code, probe, sep = "")
+  for (i in 1:length(colnames(samples))){
+    expression <- paste (colnames(samples)[i], " FLOAT(4), ", sep = "", collapse = NULL)
+    code <- paste (code, expression, sep = "")
+  }
+  code <- paste (code, paste("CONSTRAINT pk_", cancerName, "_probe PRIMARY KEY (probe), ", sep = ""), sep = "")
+  code <- paste (code, paste ("FOREIGN KEY (probe) REFERENCES ", cancerName, ".", arrayName, "_probeinfo(probe));", sep = ""), sep = "")
+  
+  return (code)
+}
+
+#' Create PostgreSQL table
+#' 
+#' Create the table in the PostgreSQL database (needs the sampleinfo file from filterBarcodes).
+#' 
+#' @include init
+#' @usage createPostgreSQLTable(cancer, array, drv, ...)
+#' @details Requires RPostgreSQL package and a connection to a PostgreSQL database.
+#'  drv
+#'    A character string specifying the database management system driver.
+#'  ...
+#'    Arguments needed to connect to the database, such as user, password, dbname, host, port, etc.
+createPostgreSQLTable <- function (cancer, array, drv, ...){
+  init(cancer, array)
+  samples <- read.table(paste(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt", sep = ""), sep = "\t", header = TRUE)
+  
+  code <- paste ("CREATE TABLE ", cancerName, ".", arrayName, "(", sep = "")
+  switch(array,
+         humanmethylation450 = {
+           varchar <- "10"
+         },
+         illuminahiseq_rnaseqv2 = {
+           varchar <- "18"
+         }
+  )
+  probe <- paste ("probe VARCHAR(", varchar, "),", sep = "")
+  code <- paste (code, probe, sep = "")
+  for (i in 1:length(colnames(samples))){
+    expression <- paste (colnames(samples)[i], " FLOAT(4), ", sep = "", collapse = NULL)
+    code <- paste (code, expression, sep = "")
+  }
+  code <- paste (code, paste("CONSTRAINT pk_", cancerName, "_probe PRIMARY KEY (probe), ", sep = ""), sep = "")
+  code <- paste (code, paste ("FOREIGN KEY (probe) REFERENCES ", cancerName, ".", arrayName, "_probeinfo(probe));", sep = ""), sep = "")
+  
+  if (exists("dbConnect") == FALSE){
+    require(RPostgreSQL)
+  }
+  con <- dbConnect(drv, ...)
+  dbSendQuery(con, code)
+  lapply(dbListResults(con), dbClearResult)
+  dbDisconnect(con)
+}
+
+#' Do PostgreSQL table correlations
+#' 
+#' Do correlations of tables stored in PostgreSQL and store significant correlations in another PostrgreSQL table.
+#' 
+#' @include init
+#' @usage corFromTableToTable(drv, ..., from.table = NULL, from.query = NULL, and.table = NULL, and.query = NULL, 
+#' to.table = NULL, stdev.threshold.from = 0, stdev.threshold.and = 0, pval.threshold = 1, nthreads = 1)
+#' @details Requires parallel package.
+#'  drv
+#'    A character string specifying the database management system driver.
+#'  ...
+#'    Arguments needed to connect to the database, such as user, password, dbname, host, port, etc.
+#'  from.table
+#'    PostgreSQL table from where the data for correlations is obtained.
+#'  from.query
+#'    PostgreSQL statement to select or filter the data in from.table for correlations.
+#'  and.table
+#'    A second PostgreSQL table (optional) from where the data for correlations is obtained.
+#'  and.query
+#'    PostgreSQL statement to select or filter the data in and.table for correlations.
+#'  to.table
+#'    PostgreSQL table where the significant correlations will be written.
+#'  stdev.threshold.from
+#'    Filters out all rows containing values with lower standard deviation than the specified threshold (in from.table).
+#'  stdev.threshold.and
+#'    Filters out all rows containing values with lower standard deviation than the specified threshold (in and.table).
+#'  pval.threshold
+#'    Correlations with a p-value higher than this threshold will be considered significant and registered in to.table.
+#'  nthreads
+#'    Number of threads this functions will use.
+corFromTableToTable <- function (drv, ..., from.table = NULL, from.query = NULL,
+                                 and.table = NULL, and.query = NULL, 
+                                 to.table = NULL, stdev.threshold.from = 0, 
+                                 stdev.threshold.and = 0, pval.threshold = 1, nthreads = 1){
+  require(parallel)
+  if (exists("dbConnect") == FALSE){
+    require(RPostgreSQL)
+  }
+  con <- dbConnect(drv, ...)
+
+  if (is.null(con)) {
+    stop("supply a connection")
+  }
+  if (is.null(from.table)) {
+    stop("supply a table to read from")
+  }
+  if (is.null(to.table)) {
+    stop("supply a table to write to")
+  }
+  if (!(is.numeric(stdev.threshold.from))){
+    stop("'stdev.threshold.from' must be numeric")
+  }
+  if (!(is.numeric(stdev.threshold.and))){
+    stop("'stdev.threshold.and' must be numeric")
+  }
+  if (!(is.numeric(pval.threshold))){
+    stop("'pval.threshold' must be numeric")
+  }
+  # Prepare and filter dataframes
+  filter <- function (dataframe, stdev){
+    system('echo Filtering started $(date)')
+    
+    startrow <- nrow(dataframe)
+    df <- na.exclude(dataframe)
+    noNArow <- nrow(df)
+    df$sd <- apply(df[,-1], 1, sd, na.rm=TRUE)
+    df <- subset(df, sd > stdev)
+    df <- df[,-length(df)]
+    endrow <- nrow(df)
+    diffrow <- startrow - endrow
+    noNA <- startrow - noNArow
+    cat(paste('\n', diffrow, 'probes filtered out.', noNA, 'probes contained NAs\n'))
+    
+    system('echo Filtering ended $(date)')
+    
+    return (df)
+  }
+  
+  # Do all probe correlations
+  correlation <- function (x, y, to.table, pval.threshold){
+    a <- as.numeric(x[-1])
+    b <- as.numeric(y[-1])
+    corr <- cor.test (a, b, method = "spearman")
+    count <<- count + 1
+    if (corr$p.value <= pval.threshold) {
+      x_probe_name <- x[1]
+      y_probe_name <- y[1]
+      if (!init){
+        system('echo Initializing connection with PostgreSQL $(date)')
+        con1 <<- dbConnect(drv, ...)
+        dbSendQuery(con1, "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;")
+        dbSendQuery(con1, 'BEGIN;')
+        init <<- TRUE
+      }
+      
+      # because the pvalue is defined as float(4) in postgres
+      if  (corr$p.value < 5.60519e-45) corr$p.value <- 0
+      
+      statement <- paste("INSERT INTO ", to.table, " VALUES ('",
+                         x_probe_name, "', '", y_probe_name, "', ",
+                         corr$estimate, ",", corr$p.value, ");", sep =  "")
+      
+      dbSendQuery(con1, statement)
+    }
+    if (count >= 100000){
+      system('echo 100000 counts done $(date)')
+      dbSendQuery(con1, 'COMMIT;')
+      dbSendQuery(con1, 'BEGIN;')
+      count <<- 0
+    }
+  }
+  
+  apply2 <- function (X, Y, DOMAIN, CTION, ...) {
+    CTION <- match.fun(CTION)
+    dl <- length(dim(Y))
+    if (!dl) 
+      stop("dim(Y) must have a positive length")
+    if (is.object(Y)) 
+      Y <- if (dl == 2L) 
+        as.matrix(Y)
+    else as.array(Y)
+    d <- dim(Y)
+    dn <- dimnames(Y)
+    ds <- seq_len(dl)
+    if (is.character(DOMAIN)) {
+      if (is.null(dnn <- names(dn))) 
+        stop("'Y' must have named dimnames")
+      DOMAIN <- match(DOMAIN, dnn)
+      if (any(is.na(DOMAIN))) 
+        stop("not all elements of 'DOMAIN' are names of dimensions")
+    }
+    s.call <- ds[-DOMAIN]
+    s.ans <- ds[DOMAIN]
+    d.call <- d[-DOMAIN]
+    d.ans <- d[DOMAIN]
+    dn.call <- dn[-DOMAIN]
+    dn.ans <- dn[DOMAIN]
+    d2 <- prod(d.ans)
+    if (d2 == 0L) {
+      newY <- array(vector(typeof(Y), 1L), dim = c(prod(d.call), 
+                                                   1L))
+      ans <- CTION(if (length(d.call) < 2L) 
+        newY[, 1]
+        else array(X,newY[, 1L], d.call, dn.call), ...)
+      return(if (is.null(ans)) ans else if (length(d.ans) < 
+                                              2L) ans[1L][-1L] else array(ans, d.ans, dn.ans))
+    }
+    newY <- aperm(Y, c(s.call, s.ans))
+    dim(newY) <- c(prod(d.call), d2)
+    ans <- vector("list", d2)
+    if (length(d.call) < 2L) {
+      if (length(dn.call)) 
+        dimnames(newY) <- c(dn.call, list(NULL))
+      for (i in 1L:d2) {
+        tmp <- CTION(X,newY[, i], ...)
+        if (!is.null(tmp)) 
+          ans[[i]] <- tmp
+      }
+    }
+    else for (i in 1L:d2) {
+      tmp <- CTION(array(X,newY[, i], d.call, dn.call), ...)
+      if (!is.null(tmp)) 
+        ans[[i]] <- tmp
+    }
+    ans.list <- is.recursive(ans[[1L]])
+    l.ans <- length(ans[[1L]])
+    ans.names <- names(ans[[1L]])
+    if (!ans.list) 
+      ans.list <- any(unlist(lapply(ans, length)) != l.ans)
+    if (!ans.list && length(ans.names)) {
+      all.same <- vapply(ans, function(Y) identical(names(Y), 
+                                                    ans.names), NA)
+      if (!all(all.same)) 
+        ans.names <- NULL
+    }
+    len.a <- if (ans.list) 
+      d2
+    else length(ans <- unlist(ans, recursive = FALSE))
+    if (length(DOMAIN) == 1L && len.a == d2) {
+      names(ans) <- if (length(dn.ans[[1L]])) 
+        dn.ans[[1L]]
+      return(ans)
+    }
+    if (len.a == d2) 
+      return(array(ans, d.ans, dn.ans))
+    if (len.a && len.a%%d2 == 0L) {
+      if (is.null(dn.ans)) 
+        dn.ans <- vector(mode = "list", length(d.ans))
+      dn.ans <- c(list(ans.names), dn.ans)
+      return(array(ans, c(len.a%/%d2, d.ans), if (!all(vapply(dn.ans, 
+                                                              is.null, NA))) dn.ans))
+    }
+    return(ans)
+  }
+  
+  apply2half <- function (X, Y, DOMAIN, CTION, ...) {
+    rowmatch <- match(X[1], Y[,1])
+    if (rowmatch < nrow (Y)){
+      Y <- Y[((1L+rowmatch):nrow(Y)),]
+      CTION <- match.fun(CTION)
+      dl <- length(dim(Y))
+      if (!dl) 
+        stop("dim(Y) must have a positive length")
+      if (is.object(Y)) 
+        Y <- if (dl == 2L) 
+          as.matrix(Y)
+      else as.array(Y)
+      d <- dim(Y)
+      dn <- dimnames(Y)
+      ds <- seq_len(dl)
+      if (is.character(DOMAIN)) {
+        if (is.null(dnn <- names(dn))) 
+          stop("'Y' must have named dimnames")
+        DOMAIN <- match(DOMAIN, dnn)
+        if (any(is.na(DOMAIN))) 
+          stop("not all elements of 'DOMAIN' are names of dimensions")
+      }
+      s.call <- ds[-DOMAIN]
+      s.ans <- ds[DOMAIN]
+      d.call <- d[-DOMAIN]
+      d.ans <- d[DOMAIN]
+      dn.call <- dn[-DOMAIN]
+      dn.ans <- dn[DOMAIN]
+      d2 <- prod(d.ans)
+      if (d2 == 0L) {
+        newY <- array(vector(typeof(Y), 1L), dim = c(prod(d.call), 
+                                                     1L))
+        ans <- CTION(if (length(d.call) < 2L) 
+          newY[, 1]
+          else array(X,newY[, 1L], d.call, dn.call), ...)
+        return(if (is.null(ans)) ans else if (length(d.ans) < 
+                                                2L) ans[1L][-1L] else array(ans, d.ans, dn.ans))
+      }
+      newY <- aperm(Y, c(s.call, s.ans))
+      dim(newY) <- c(prod(d.call), d2)
+      ans <- vector("list", d2)
+      if (length(d.call) < 2L) {
+        if (length(dn.call)) 
+          dimnames(newY) <- c(dn.call, list(NULL))
+        for (i in 1L:d2) {
+          tmp <- CTION(X,newY[, i], ...)
+          if (!is.null(tmp)) 
+            ans[[i]] <- tmp
+        }
+      }
+      else for (i in 1L:d2) {
+        tmp <- CTION(array(X,newY[, i], d.call, dn.call), ...)
+        if (!is.null(tmp)) 
+          ans[[i]] <- tmp
+      }
+      ans.list <- is.recursive(ans[[1L]])
+      l.ans <- length(ans[[1L]])
+      ans.names <- names(ans[[1L]])
+      if (!ans.list) 
+        ans.list <- any(unlist(lapply(ans, length)) != l.ans)
+      if (!ans.list && length(ans.names)) {
+        all.same <- vapply(ans, function(Y) identical(names(Y), 
+                                                      ans.names), NA)
+        if (!all(all.same)) 
+          ans.names <- NULL
+      }
+      len.a <- if (ans.list) 
+        d2
+      else length(ans <- unlist(ans, recursive = FALSE))
+      if (length(DOMAIN) == 1L && len.a == d2) {
+        names(ans) <- if (length(dn.ans[[1L]])) 
+          dn.ans[[1L]]
+        return(ans)
+      }
+      if (len.a == d2) 
+        return(array(ans, d.ans, dn.ans))
+      if (len.a && len.a%%d2 == 0L) {
+        if (is.null(dn.ans)) 
+          dn.ans <- vector(mode = "list", length(d.ans))
+        dn.ans <- c(list(ans.names), dn.ans)
+        return(array(ans, c(len.a%/%d2, d.ans), if (!all(vapply(dn.ans, 
+                                                                is.null, NA))) dn.ans))
+      }
+      return(ans) 
+    }
+  }
+  # Get dataframes from the database
+  cat('\nGetting data from database ')
+  system('date')
+  #x_rs <- dbGetQuery(con, paste('SELECT * FROM', from.table))
+  
+  # this fetches the sample names
+  # x_rs <- dbGetQuery(con,
+  #                    "SELECT 'SELECT ' || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
+  #                     FROM information_schema.columns As c
+  #                     WHERE c.table_name = 'humanmethylation450' 
+  #                       AND c.table_schema = 'coad'
+  #                       AND  c.column_name NOT IN('chromosome', 'genomic_coordinate_hg19')
+  #                     ), ',') || ' FROM humanmethylation450 AS data' AS sqlstmt; ")
+  
+  
+  
+  x_rs <-  dbGetQuery(con, from.query)
+  
+  if (!is.null(and.table)) {
+    y_rs <- dbGetQuery(con, and.query)
+  }
+  system('echo Finished getting data from database $(date)')
+  
+  
+  x_rs <- filter(x_rs, stdev.threshold.from)
+  if (!is.null(and.table)) {
+    y_rs <- filter(y_rs, stdev.threshold.and) 
+  }
+  
+  
+  system('echo Making clusters $(date)')
+  cluster <- makeCluster(nthreads)
+  clusterExport(cluster, "connect")
+  clusterEvalQ(cluster, library(RPostgreSQL))
+  clusterEvalQ(cluster, init <- FALSE)
+  clusterEvalQ(cluster, count <- 0)
+  
+  system('echo Starting parallel apply $(date)')
+  
+  if (!is.null(and.table)) {
+    parApply(cl = cluster, X = x_rs, MARGIN = 1, FUN = apply2, Y = y_rs, DOMAIN = 1,
+             CTION = correlation, to.table = to.table, pval.threshold = pval.threshold)
+    clusterEvalQ(cluster, dbSendQuery(con1, "COMMIT;"))
+    stopCluster(cl = cluster)
+  } else {
+    parApply(cl = cluster, X = x_rs, MARGIN = 1, FUN = apply2half, Y = x_rs, DOMAIN = 1,
+             CTION = correlation, to.table = to.table, pval.threshold = pval.threshold)
+    clusterEvalQ(cluster, dbSendQuery(con1, "COMMIT;"))
+    stopCluster(cl = cluster)
+  }
+  lapply(dbListResults(con), dbClearResult)
+  dbDisconnect(con)
+  return (TRUE)
 }
 
 readPath <- "~/"

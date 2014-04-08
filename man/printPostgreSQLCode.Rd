@@ -6,7 +6,7 @@
 }
 \description{
   Print the code to create the table in the PostgreSQL
-  database (needs the file from pairBarcodes).
+  database (needs the sampleinfo file from filterBarcodes).
 }
 \details{
   The print will be displayed on the console.
