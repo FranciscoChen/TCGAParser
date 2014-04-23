@@ -8,13 +8,15 @@
 
 #' Get matching links in a URL
 #' 
-#' Given a URL and a regular expression, returns all links in the URL matching the regular expression along its last modified date.
+#' Given a URL and a regular expression, returns all links in the URL matching the regular expression 
+#' along its last modified date.
 #' 
 #' @usage getLinks(URL, REGEXPR)
 #' @param URL Link to a website to scrape.
 #' @param REGEXPR Regular expression to match to the scraped contents.
 #' @details Requires RCurl package to getURL from https. 
-#' @return Returns a list[[i]][[1|2]] with i matches and two sublevels for every match: 1 is the link and 2 is the last modified date (if any). 
+#' @return Returns a list[[i]][[1|2]] with i matches and two sublevels for every match: 1 is the link 
+#' and 2 is the last modified date (if any). 
 #' If the given URL does not exist or there are no matches, returns nothing.
 getLinks <- function (URL, REGEXPR){
   if(exists("getURL") == FALSE){
@@ -28,7 +30,10 @@ getLinks <- function (URL, REGEXPR){
       list <- vector ("list", length(linkIndices))
       for (i in 1:length(linkIndices)){
         list[[i]][[1]] <- regmatches(links[linkIndices[i]], regexpr(REGEXPR, links[linkIndices[i]]))
-        list[[i]][[2]] <- regmatches(links[linkIndices[i]], regexpr("[[:alnum:]]{4}-[[:alnum:]]{2}-[[:alnum:]]{2}[[:blank:]][[:alnum:]]{2}[[:punct:]][[:alnum:]]{2}", links[linkIndices[i]]))
+        list[[i]][[2]] <- regmatches(links[linkIndices[i]], regexpr(
+          "[[:alnum:]]{4}-[[:alnum:]]{2}-[[:alnum:]]{2}[[:blank:]][[:alnum:]]{2}[[:punct:]][[:alnum:]]{2}",
+          links[linkIndices[i]]
+          ))
       }
       return (list)
     }
@@ -47,7 +52,8 @@ getLinks <- function (URL, REGEXPR){
 #' stringsAsFactors = default.stringsAsFactors(), fileEncoding = "", 
 #' encoding = "unknown", text)
 #' @param URL Link to a text file.
-#' @details The file is read with tab as separators and expecting a header. All other arguments are as in read.table.
+#' @details The file is read with tab as separators and expecting a header. All other arguments are 
+#' as in read.table.
 #' @return Returns a data frame or nothing.
 #' @seealso read.table
 getDataframe <- function (URL, header = TRUE, sep = "\t", quote = "\"'", dec = ".", 
@@ -63,19 +69,19 @@ getDataframe <- function (URL, header = TRUE, sep = "\t", quote = "\"'", dec = "
   if (url.exists(URL)){
     # Downloads the data as .txt
     binary <- getBinaryURL(URL, ssl.verifypeer=FALSE)
-    connection <- file(paste(writePath, "/", "tempData.txt", sep = ""), open = "wb")
+    connection <- file(paste0(writePath, "/", "tempData.txt"), open = "wb")
     writeBin(binary, connection)
     close(connection)
     # Reads the .txt file.
-    if (file.exists(paste(writePath, "/", "tempData.txt", sep = "")) == TRUE){
-      data <- read.table(paste(writePath, "/", "tempData.txt", sep = ""), header, sep, quote, dec, 
+    if (file.exists(paste0(writePath, "/", "tempData.txt")) == TRUE){
+      data <- read.table(paste0(writePath, "/", "tempData.txt"), header, sep, quote, dec, 
                          row.names, col.names, as.is, na.strings, 
                          colClasses, nrows, skip, check.names, 
                          fill, strip.white, blank.lines.skip, 
                          comment.char, allowEscapes, flush, 
                          stringsAsFactors, fileEncoding, 
                          encoding, text)
-      file.remove(paste(writePath, "/", "tempData.txt", sep = ""))
+      file.remove(paste0(writePath, "/", "tempData.txt"))
     }
     if (exists("data") == TRUE){
       return (data)
@@ -111,9 +117,12 @@ fixDataframe <- function(dataframe, array) {
                
                grepRow <- matrixPosition
                
-               names(dataframe) <- as.matrix(dataframe[grepRow,]) # Row names are substituded for the row that contains "Beta_value".
-               data <- dataframe[-grepRow,] # Removes the row that contained "Beta_value".
-               data <- data[1:485512,] # Removes all the rs probes.
+               # Row names are substituded for the row that contains "Beta_value".
+               names(dataframe) <- as.matrix(dataframe[grepRow,]) 
+               # Removes the row that contained "Beta_value".
+               data <- dataframe[-grepRow,]
+               # Removes all the rs probes.
+               data <- data[-grep("rs", data[,1]),]
                return (data)
              }
            }
@@ -141,7 +150,7 @@ init <- function (cancer, array){
          humanmethylation450 = {
            arrayPath <<- "/cgcc/jhu-usc.edu/humanmethylation450/methylation/"
            archiveRegexpr <<- "jhu-usc.edu_[[:alpha:]]*.HumanMethylation450.Level_3.[0-9]+.6.[0-9]/"
-           fileRegexpr <<-  "jhu-usc.edu_[[:alpha:]]*.HumanMethylation450.[[:alnum:]]*.lvl-3.TCGA-[[:alnum:]]*-[[:alnum:]]*-0[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*.txt"
+           fileRegexpr <<- "jhu-usc.edu_[[:alpha:]]*.HumanMethylation450.[[:alnum:]]*.lvl-3.TCGA-[[:alnum:]]*-[[:alnum:]]*-0[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*.txt"
            barcodeRegexpr <<- "TCGA-[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*-[[:alnum:]]*"
            value <<- "Beta_value"
            magetabArchiveRegexpr <<- "jhu-usc.edu_[[:alpha:]]{2,4}.HumanMethylation450.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
@@ -193,48 +202,68 @@ init <- function (cancer, array){
 #' @include getDataframe
 #' @include fixDataframe
 #' @usage download(cancer, array)
-#' @details Takes considerable time and memory to complete. It will generate a .txt file for each TCGA folder.
+#' @details Takes considerable time and memory to complete. It will generate a .txt file for each 
+#' TCGA folder.
 download <- function(cancer, array){
   init(cancer, array)
-  archiveList <- getLinks(paste(accessRoot, cancerName, arrayPath, sep = ""), archiveRegexpr)
+  archiveList <- getLinks(paste0(accessRoot, cancerName, arrayPath), archiveRegexpr)
   
   # First time: initialize the dataframe.
-  if (file.exists(paste(cancerName, "_dataframe_", arrayName, ".txt", sep = "")) == FALSE){
-    fileList <- getLinks(paste(accessRoot, cancerName, arrayPath, archiveList[[1]][[1]], sep = ""), fileRegexpr)
-    reference <- getDataframe(paste(accessRoot, cancerName, arrayPath, archiveList[[1]][[1]], fileList[[1]][[1]], sep = ""))
-    reference <- fixDataframe(reference, array)
+  if (file.exists(paste0(cancerName, "_dataframe_", arrayName, ".txt")) == FALSE){
+    fileList <- getLinks(paste0(accessRoot, cancerName, arrayPath, archiveList[[1]][[1]]), fileRegexpr)
+    reference <- getDataframe(paste0(accessRoot, cancerName, arrayPath, archiveList[[1]][[1]],
+                                     fileList[[1]][[1]]))
+    reference <- fixDataframe(reference, arrayName)
     reference[colnames(reference) == value] <- NULL
     switch(array,
            humanmethylation450 = {
              reference[colnames(reference) == "Gene_Symbol"] <- NULL
-             annotations <- getDataframe("www.ncbi.nlm.nih.gov//geo/query/acc.cgi?mode=raw&is_datatable=true&acc=GPL16304&id=47833&db=GeoDb_blob89")
+             reference[colnames(reference) == "Genomic_Coordinate"] <- NULL
+             annotations <- getDataframe(
+               "www.ncbi.nlm.nih.gov//geo/query/acc.cgi?mode=raw&is_datatable=true&acc=GPL16304&id=47833&db=GeoDb_blob89"
+               )
              reference <- cbind(reference, annotations$Closest_TSS)
              reference <- cbind(reference, annotations$Distance_closest_TSS)
              reference <- cbind(reference, annotations$Closest_TSS_gene_name)
+             require("FDb.InfiniumMethylation.hg19")
+             annotations <- get450k()
+             annotations <- as.data.frame(annotations)
+             annotations <- annotations[order(row.names(annotations)),]
+             annotations[colnames(annotations) == "seqnames"] <- NULL
+             annotations[colnames(annotations) == "probeTarget"] <- NULL
+             annotations <- annotations[-grep("rs", rownames(annotations)),]# Removes all the rs probes.
+             reference <- cbind(reference, annotations)
            },
            illuminahiseq_rnaseqv2 = {
              reference[colnames(reference) == "raw_counts"] <- NULL
              reference[colnames(reference) == "median_length_normalized"] <- NULL
              exon <- "^chr([0123456789XY]+):([[:digit:]]*)-([[:digit:]]*):([[:punct:]])$"
-             reference$chromosome <- apply(reference[,1, drop = FALSE], 2, function(x) as.character(gsub(exon, "\\1", x)))
-             reference$start <- apply(reference[,1, drop = FALSE], 2, function(x) as.character(gsub(exon, "\\2", x)))
-             reference$end <- apply(reference[,1, drop = FALSE], 2, function(x) as.character(gsub(exon, "\\3", x)))
-             reference$strand <- apply(reference[,1, drop = FALSE], 2, function(x) as.character(gsub(exon, "\\4", x)))
+             reference$chromosome <- apply(reference[,1, drop = FALSE], 2,
+                                           function(x) as.character(gsub(exon, "\\1", x)))
+             reference$start <- apply(reference[,1, drop = FALSE], 2,
+                                      function(x) as.character(gsub(exon, "\\2", x)))
+             reference$end <- apply(reference[,1, drop = FALSE], 2,
+                                    function(x) as.character(gsub(exon, "\\3", x)))
+             reference$strand <- apply(reference[,1, drop = FALSE], 2,
+                                       function(x) as.character(gsub(exon, "\\4", x)))
            }
     )
-    write.table(reference, file = paste(writePath, "/", cancerName, "_dataframe_", arrayName, ".txt", sep = ""), sep = "\t", quote = FALSE)
+    write.table(reference, file = paste0(writePath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
+                sep = "\t", quote = FALSE)
     rm(reference)
     gc()
   }
   
   for (i in 1:length(archiveList)){
     #Get all files in every folder
-    fileList <- getLinks(paste(accessRoot, cancerName, arrayPath, archiveList[[i]][[1]], sep = ""), fileRegexpr)
+    fileList <- getLinks(paste0(accessRoot, cancerName, arrayPath, archiveList[[i]][[1]]), fileRegexpr)
     if (length(fileList) > 0){
-      df <- read.table(paste(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt", sep = ""), header = TRUE, sep = "\t")
+      df <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
+                       header = TRUE, sep = "\t")
+      df <- df[,1, drop = FALSE]
       for (j in 1: length(fileList)){
         #Append every file to our dataframe
-        URL <- paste(accessRoot, cancerName, arrayPath, archiveList[[i]][[1]], fileList[[j]][[1]], sep = "")
+        URL <- paste0(accessRoot, cancerName, arrayPath, archiveList[[i]][[1]], fileList[[j]][[1]])
         newdf <- getDataframe(URL)
         newdf <- fixDataframe(newdf, array)
         colnames(newdf)[colnames(newdf) == value] <- regmatches(URL, regexpr(barcodeRegexpr, URL))
@@ -242,8 +271,11 @@ download <- function(cancer, array){
         df <- cbind(df, newdf)
       }
       #Finally, save the table
-      archiveName <- regmatches(archiveList[[i]][[1]], regexpr(substr(archiveRegexpr, 1, nchar(archiveRegexpr)-1),archiveList[[i]][[1]]))
-      write.table(df, file = paste(writePath, "/", cancerName, "_dataframe_", archiveName, ".txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE)
+      archiveName <- regmatches(archiveList[[i]][[1]],
+                                regexpr(substr(archiveRegexpr, 1, nchar(archiveRegexpr)-1),
+                                        archiveList[[i]][[1]]))
+      write.table(df, file = paste0(writePath, "/", cancerName, "_dataframe_", archiveName, ".txt"),
+                  append = FALSE, sep = "\t", quote = FALSE)
       rm(df)
       gc()
     }
@@ -252,7 +284,8 @@ download <- function(cancer, array){
 
 #' Get TCGA barcodes
 #' 
-#' Gets a dataframe containing all the barcodes assigned to every sample in a specific cancer type and array.
+#' Gets a dataframe containing all the barcodes assigned to every sample in a specific cancer type 
+#' and array.
 #' 
 #' @include init
 #' @include getLinks
@@ -261,7 +294,7 @@ download <- function(cancer, array){
 #' @return A data frame of the mage-tab file or NA.
 getBarcodes <- function (cancer, array){
   init(cancer, array)
-    archives <- getLinks(paste(accessRoot, cancerName, arrayPath, sep = ""), magetabArchiveRegexpr)
+    archives <- getLinks(paste0(accessRoot, cancerName, arrayPath), magetabArchiveRegexpr)
   if (length(archives) > 0){
     if (length(archives) > 1){
       # Get the most recent one.
@@ -272,7 +305,7 @@ getBarcodes <- function (cancer, array){
       dates <- sort(dates, decreasing = TRUE)
       archives <- archives[grep(dates[1], archives)]
     }
-    files <- getLinks(paste(accessRoot, cancerName, arrayPath, archives[[1]][[1]], sep = ""), magetabFileRegexpr)
+    files <- getLinks(paste0(accessRoot, cancerName, arrayPath, archives[[1]][[1]]), magetabFileRegexpr)
     if (length(files) > 0){
       if (length(files) > 1){
         # Get the most recent one.
@@ -283,7 +316,7 @@ getBarcodes <- function (cancer, array){
         dates <- sort(dates, decreasing = TRUE)
         files <- files[grep(dates[1], files)] 
       }
-      return (getDataframe(paste(accessRoot, cancerName, arrayPath, archives[[1]][[1]], files[[1]][[1]], sep = "")))
+      return (getDataframe(paste0(accessRoot, cancerName, arrayPath, archives[[1]][[1]], files[[1]][[1]])))
     }
   }
   return (NA)
@@ -294,7 +327,8 @@ getBarcodes <- function (cancer, array){
 #' Pairs barcodes between two arrays for a specific cancer type.
 #' 
 #' @usage pairBarcodes (cancer, array1, array2)
-#' @details Filters for the first 16 TCGA barcode characters, which refer to participant, sample type and vial. Duplicates are removed, along with normal and control tissue samples.
+#' @details Filters for the first 16 TCGA barcode characters, which refer to participant,
+#' sample type and vial. Duplicates are removed, along with normal and control tissue samples.
 #' Finally, it will write into disk the data frames for each array.
 pairBarcodes <- function (cancer, array1, array2){
   a <- getBarcodes(cancer, array1)
@@ -310,8 +344,10 @@ pairBarcodes <- function (cancer, array1, array2){
   a <- subset(a, Barcodes %in% b$Barcodes)
   a <- subset(a, grepl("TCGA-[[:alnum:]]*-[[:alnum:]]*-0[[:alnum:]]*", Barcodes))
   
-  write.table(a, file = paste(writePath, "/", cancer, "_commonPatients_", array1, ".txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE)
-  write.table(b, file = paste(writePath, "/", cancer,"_commonPatients_", array2, ".txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE)
+  write.table(a, file = paste0(writePath, "/", cancer, "_commonPatients_", array1, ".txt"), 
+              append = FALSE, sep = "\t", quote = FALSE)
+  write.table(b, file = paste0(writePath, "/", cancer,"_commonPatients_", array2, ".txt"), 
+              append = FALSE, sep = "\t", quote = FALSE)
 }
 
 #' Filter TCGA data by paired barcodes
@@ -322,61 +358,81 @@ pairBarcodes <- function (cancer, array1, array2){
 #' @include getLinks
 #' @usage filterBarcodes(cancer, array)
 #' @details Uses the files generated by download and pairBarcodes. 
-#' It will generate and save three data frames: one containing information for every probe, one containing the sample values for each probe, and one containing the sample barcodes (reference).
+#' It will generate and save three data frames: one containing information for every probe, 
+#' one containing the sample values for each probe, and one containing the sample barcodes (reference).
 filterBarcodes <- function (cancer, array){
   init(cancer, array)
-  archiveList <- getLinks(paste(accessRoot, cancer, arrayPath, sep = ""), archiveRegexpr)
-  all <- read.table(paste(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt", sep = ""), header = TRUE, sep = "\t")
+  archiveList <- getLinks(paste0(accessRoot, cancer, arrayPath), archiveRegexpr)
+  all <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
+                    header = TRUE, sep = "\t")
   all <- all[,1, drop = FALSE]
   
-  pairedBarcodes <- read.table(paste(readPath, "/", cancerName, "_commonPatients_", arrayName, ".txt", sep = ""), sep = "\t", header = TRUE)
+  pairedBarcodes <- read.table(paste0(readPath, "/", cancerName, "_commonPatients_", arrayName, ".txt"), 
+                               sep = "\t", header = TRUE)
   for (i in 1:length(archiveList)){
     archiveName <- regmatches(archiveList[[i]][[1]], regexpr(archiveRegexpr, archiveList[[i]][[1]]))
     archiveName <- substr(archiveName, 1, nchar(archiveName)-1)
-    if (file.exists(paste(cancerName, "_dataframe_", archiveName, ".txt", sep = "")) == TRUE){
-      a <- read.table(paste(readPath, "/", cancerName, "_dataframe_", archiveName, ".txt", sep = ""), header = TRUE, sep = "\t")
+    if (file.exists(paste0(cancerName, "_dataframe_", archiveName, ".txt")) == TRUE){
+      a <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", archiveName, ".txt"),
+                      header = TRUE, sep = "\t")
       colnames(a) <- gsub("[.]","-", colnames(a))
       switch(array,
              humanmethylation450 = {
                a <- subset (a, select = colnames(a) %in% pairedBarcodes$Comment..TCGA.Barcode.)
              },
              illuminahiseq_rnaseqv2 = {
-               colnames(a)[grep(barcodeRegexpr, colnames(a))] <- regmatches(colnames(a), regexpr(barcodeRegexpr, colnames(a)))
+               colnames(a)[grep(barcodeRegexpr, colnames(a))] <- 
+                 regmatches(colnames(a), regexpr(barcodeRegexpr, colnames(a)))
                a <- subset (a, select = colnames(a) %in% pairedBarcodes$Extract.Name)
-               colnames(a) <- as.character(lapply(colnames(a), function(x) x <- as.character(pairedBarcodes[grep(x, pairedBarcodes$Extract.Name),]$Comment..TCGA.Barcode.)))
+               # Rename extract name into TCGA barcodes.
+               colnames(a) <- as.character(
+                 lapply(
+                   colnames(a), function(x) x <- as.character(
+                     pairedBarcodes[grep(x, pairedBarcodes$Extract.Name),]$Comment..TCGA.Barcode.
+                   )
+                 )
+               )
              }
       )
       all <- cbind (all, a)
       rm(a)
     }
   }
-  probeinfo <- read.table(paste(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt", sep = ""), header = TRUE, sep = "\t")
-  write.table(probeinfo, paste(writePath, "/", cancerName, "_probeinfo_", arrayName, "_to_SQL.txt", sep = ""), quote = FALSE, sep = "\t", col.names = FALSE, row.names = FALSE)
+  probeinfo <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
+                          header = TRUE, sep = "\t")
+  write.table(probeinfo, paste0(writePath, "/", cancerName, "_probeinfo_", arrayName, "_to_SQL.txt"),
+              quote = FALSE, sep = "\t", col.names = FALSE, row.names = FALSE)
   rm(probeinfo)
   all <- all[,-1]
   all <- all[,order(colnames(all))]
   samples <- all[0,]
   colnames(samples) <- gsub("-","_", colnames(samples))
-  write.table(samples, paste(writePath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt", sep = ""), quote = FALSE, sep = "\t")
-  id <- read.table(paste(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt", sep = ""), header = TRUE, sep = "\t")
+  write.table(samples, paste0(writePath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt"),
+              quote = FALSE, sep = "\t")
+  id <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
+                   header = TRUE, sep = "\t")
   id <- id[,1, drop = FALSE]
   all <- cbind (id, all)
-  write.table(all, paste(writePath, "/", cancerName, "_", arrayName, "_to_SQL.txt", sep = ""), quote = FALSE, sep = "\t", col.names = FALSE, row.names = FALSE)
+  write.table(all, paste0(writePath, "/", cancerName, "_", arrayName, "_to_SQL.txt"),
+              quote = FALSE, sep = "\t", col.names = FALSE, row.names = FALSE)
   rm(all)
   gc()
 }
 
 #' Analyze the NA distribution
 #' 
-#' Analyze the NA distribution in the filtered TCGA samples, per probe and sample (uses the files from filterBarcodes).
+#' Analyze the NA distribution in the filtered TCGA samples, per probe and sample 
+#' (uses the files from filterBarcodes).
 #' Also, get the standard deviation for every probe.
 #' 
 #' @include init
 #' @usage analyzeNAs(cancer, array)
-#' @details It will write two text files to disk, one containing the number of NAs and standard deviation of every probe and the other containing the number of NAs for every sample.
+#' @details It will write two text files to disk, one containing the number of NAs and standard deviation
+#' of every probe and the other containing the number of NAs for every sample.
 analyzeNAs <- function (cancer, array){
   init(cancer, array)
-  df <- read.table(paste(readPath, "/", cancerName, "_", arrayName, "_to_SQL.txt", sep = ""), sep = "\t", header = TRUE)
+  df <- read.table(paste0(readPath, "/", cancerName, "_", arrayName, "_to_SQL.txt"),
+                   sep = "\t", header = TRUE)
    
   probeTable <- as.data.frame (matrix(nrow = nrow(df), ncol = 3))
   sampleTable <- as.data.frame (matrix(nrow = 2, ncol = ncol(df[,2:ncol(df)])))
@@ -385,29 +441,38 @@ analyzeNAs <- function (cancer, array){
   probeTable[,2] <- apply(df[,2:ncol(df)], 1, function(z) sum(is.na(z)))
   probeTable[,3] <- apply(df[,2:ncol(df)], 1, function(z) sd(z, na.rm=TRUE))
     
-  write.table(probeTable, paste(writePath, "/", cancerName, "_", arrayName, "_probe_NA_sd.txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE)
+  write.table(probeTable, paste0(writePath, "/", cancerName, "_", arrayName, "_probe_NA_sd.txt"),
+              append = FALSE, sep = "\t", quote = FALSE)
 
-  samples <- read.table(paste(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt", sep = ""), sep = "\t", header = TRUE)
+  samples <- read.table(paste0(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt"),
+                        sep = "\t", header = TRUE)
   sampleTable[1,] <- colnames(samples)
   sampleTable[2,] <- apply(df[,2:ncol(df)], 2, function(z) sum(is.na(z)))
     
-  write.table(sampleTable, paste(writePath, "/", cancerName, "_", arrayName, "_sample_NA.txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE) 
+  write.table(sampleTable, paste0(writePath, "/", cancerName, "_", arrayName, "_sample_NA.txt"),
+              append = FALSE, sep = "\t", quote = FALSE) 
 }
 
 #' Generate a TCGA barcode pairing table
 #' 
-#' For each tumor's humanmethylation450/ get the number of matching barcodes in agilentg4502a_07_3/, illuminaga_rnaseq/, illuminaga_rnaseqv2/, illuminahiseq_rnaseq/ and illuminahiseq_rnaseqv2/.
+#' For each tumor's humanmethylation450/ get the number of matching barcodes in agilentg4502a_07_3/, 
+#' illuminaga_rnaseq/, illuminaga_rnaseqv2/, illuminahiseq_rnaseq/ and illuminahiseq_rnaseqv2/.
 #' 
 #' @include getLinks
 #' @usage generatePairingTable()
-#' @details Filters for the first 16 TCGA barcode characters, which refer to participant, sample type and vial. Duplicates are removed, along with normal and control tissue samples.
+#' @details Filters for the first 16 TCGA barcode characters, which refer to participant, 
+#' sample type and vial. Duplicates are removed, along with normal and control tissue samples.
 #' Finally, it will write the result in the specified path.
 generatePairingTable <- function () {
-  cancerNames <- getLinks("https://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/", "^[[:alpha:]]{2,4}/")
+  cancerNames <- getLinks(
+    "https://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/",
+    "^[[:alpha:]]{2,4}/"
+    )
   
   barcodePairing <- as.data.frame (matrix(nrow = length(cancerNames), ncol = 7))
   rownames(barcodePairing) = cancerNames
-  colnames(barcodePairing) <- c("humanmethylation450", "agilentg4502a_07_3", "illuminaga_rnaseq", "illuminaga_rnaseqv2", "illuminahiseq_rnaseq", "illuminahiseq_rnaseqv2", "illuminahiseq_totalrnaseqv2")
+  colnames(barcodePairing) <- c("humanmethylation450", "agilentg4502a_07_3", "illuminaga_rnaseq", "illuminaga_rnaseqv2",
+                                "illuminahiseq_rnaseq", "illuminahiseq_rnaseqv2", "illuminahiseq_totalrnaseqv2")
   
   for (i in 1:length(cancerNames)){
     
@@ -468,21 +533,25 @@ generatePairingTable <- function () {
       }
     }
   }
-  write.table(barcodePairing, paste(writePath, "/", "barcodePairing.txt", sep = ""), append = FALSE, sep = "\t", quote = FALSE)
+  write.table(barcodePairing, paste0(writePath, "/", "barcodePairing.txt"), 
+              append = FALSE, sep = "\t", quote = FALSE)
 }
 
 #' Print code for PostgreSQL
 #' 
-#' Print the code to create the table in the PostgreSQL database (needs the sampleinfo file from filterBarcodes).
+#' Print the code to create the table in the PostgreSQL database 
+#' (needs the sampleinfo file from filterBarcodes).
+#' It also outputs the code in writePath/createTable.txt.
 #' 
 #' @include init
 #' @usage printPostgreSQLCode(cancer, array)
 #' @details The print will be displayed on the console.
 printPostgreSQLCode <- function (cancer, array){
   init(cancer, array)
-  samples <- read.table(paste(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt", sep = ""), sep = "\t", header = TRUE)
+  samples <- read.table(paste0(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt"), 
+                        sep = "\t", header = TRUE)
   
-  code <- paste ("CREATE TABLE ", cancerName, ".", arrayName, "(", sep = "")
+  code <- paste0("CREATE TABLE ", cancerName, ".", arrayName, "(")
   switch(array,
          humanmethylation450 = {
            varchar <- "10"
@@ -491,92 +560,53 @@ printPostgreSQLCode <- function (cancer, array){
            varchar <- "18"
          }
   )
-  probe <- paste ("probe VARCHAR(", varchar, "),", sep = "")
-  code <- paste (code, probe, sep = "")
+  probe <- paste0("probe VARCHAR(", varchar, "),")
+  code <- paste0(code, probe)
   for (i in 1:length(colnames(samples))){
-    expression <- paste (colnames(samples)[i], " FLOAT(4), ", sep = "", collapse = NULL)
-    code <- paste (code, expression, sep = "")
+    expression <- paste0(colnames(samples)[i], " FLOAT(4), ", collapse = NULL)
+    code <- paste0(code, expression)
   }
-  code <- paste (code, paste("CONSTRAINT pk_", cancerName, "_probe PRIMARY KEY (probe), ", sep = ""), sep = "")
-  code <- paste (code, paste ("FOREIGN KEY (probe) REFERENCES ", cancerName, ".", arrayName, "_probeinfo(probe));", sep = ""), sep = "")
+  code <- paste0(code, paste0("CONSTRAINT pk_", cancerName, "_probe PRIMARY KEY (probe), "))
+  code <- paste0(code, paste0("FOREIGN KEY (probe) REFERENCES ", 
+                              cancerName, ".", arrayName, "_probeinfo(probe));"))
   
+  write(code,  paste0(writePath, "/", "createTable.txt"))
   return (code)
-}
-
-#' Create PostgreSQL table
-#' 
-#' Create the table in the PostgreSQL database (needs the sampleinfo file from filterBarcodes).
-#' 
-#' @include init
-#' @usage createPostgreSQLTable(cancer, array, drv, ...)
-#' @details Requires RPostgreSQL package and a connection to a PostgreSQL database.
-#'  drv
-#'    A character string specifying the database management system driver.
-#'  ...
-#'    Arguments needed to connect to the database, such as user, password, dbname, host, port, etc.
-createPostgreSQLTable <- function (cancer, array, drv, ...){
-  init(cancer, array)
-  samples <- read.table(paste(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt", sep = ""), sep = "\t", header = TRUE)
-  
-  code <- paste ("CREATE TABLE ", cancerName, ".", arrayName, "(", sep = "")
-  switch(array,
-         humanmethylation450 = {
-           varchar <- "10"
-         },
-         illuminahiseq_rnaseqv2 = {
-           varchar <- "18"
-         }
-  )
-  probe <- paste ("probe VARCHAR(", varchar, "),", sep = "")
-  code <- paste (code, probe, sep = "")
-  for (i in 1:length(colnames(samples))){
-    expression <- paste (colnames(samples)[i], " FLOAT(4), ", sep = "", collapse = NULL)
-    code <- paste (code, expression, sep = "")
-  }
-  code <- paste (code, paste("CONSTRAINT pk_", cancerName, "_probe PRIMARY KEY (probe), ", sep = ""), sep = "")
-  code <- paste (code, paste ("FOREIGN KEY (probe) REFERENCES ", cancerName, ".", arrayName, "_probeinfo(probe));", sep = ""), sep = "")
-  
-  if (exists("dbConnect") == FALSE){
-    require(RPostgreSQL)
-  }
-  con <- dbConnect(drv, ...)
-  dbSendQuery(con, code)
-  lapply(dbListResults(con), dbClearResult)
-  dbDisconnect(con)
 }
 
 #' Do PostgreSQL table correlations
 #' 
-#' Do correlations of tables stored in PostgreSQL and store significant correlations in another PostrgreSQL table.
+#' Do correlations of tables stored in PostgreSQL and store significant correlations 
+#' in another PostrgreSQL table.
 #' 
 #' @include init
-#' @usage corFromTableToTable(drv, ..., from.table = NULL, from.query = NULL, and.table = NULL, and.query = NULL, 
+#' @usage corFromTableToTable(drv, ..., from.query = NULL, and.query = NULL, 
 #' to.table = NULL, stdev.threshold.from = 0, stdev.threshold.and = 0, pval.threshold = 1, nthreads = 1)
 #' @details Requires parallel package.
 #'  drv
 #'    A character string specifying the database management system driver.
 #'  ...
 #'    Arguments needed to connect to the database, such as user, password, dbname, host, port, etc.
-#'  from.table
-#'    PostgreSQL table from where the data for correlations is obtained.
 #'  from.query
-#'    PostgreSQL statement to select or filter the data in from.table for correlations.
-#'  and.table
-#'    A second PostgreSQL table (optional) from where the data for correlations is obtained.
+#'    PostgreSQL statement to select or filter the data in a specified PostgreSQL table
+#'    for correlations.
 #'  and.query
-#'    PostgreSQL statement to select or filter the data in and.table for correlations.
+#'    PostgreSQL statement to select or filter the data in a second specified PostgreSQL table
+#'    for correlations.
 #'  to.table
 #'    PostgreSQL table where the significant correlations will be written.
 #'  stdev.threshold.from
-#'    Filters out all rows containing values with lower standard deviation than the specified threshold (in from.table).
+#'    Filters out all rows containing values with lower standard deviation than the specified threshold
+#'    (in from.query).
 #'  stdev.threshold.and
-#'    Filters out all rows containing values with lower standard deviation than the specified threshold (in and.table).
+#'    Filters out all rows containing values with lower standard deviation than the specified threshold 
+#'    (in and.query).
 #'  pval.threshold
-#'    Correlations with a p-value higher than this threshold will be considered significant and registered in to.table.
+#'    Correlations with a p-value higher than this threshold will be considered significant and registered
+#'    in to.table.
 #'  nthreads
 #'    Number of threads this functions will use.
-corFromTableToTable <- function (drv, ..., from.table = NULL, from.query = NULL,
-                                 and.table = NULL, and.query = NULL, 
+corFromTableToTable <- function (drv, ..., from.query = NULL, and.query = NULL, 
                                  to.table = NULL, stdev.threshold.from = 0, 
                                  stdev.threshold.and = 0, pval.threshold = 1, nthreads = 1){
   require(parallel)
@@ -588,7 +618,7 @@ corFromTableToTable <- function (drv, ..., from.table = NULL, from.query = NULL,
   if (is.null(con)) {
     stop("supply a connection")
   }
-  if (is.null(from.table)) {
+  if (is.null(from.query)) {
     stop("supply a table to read from")
   }
   if (is.null(to.table)) {
@@ -643,9 +673,9 @@ corFromTableToTable <- function (drv, ..., from.table = NULL, from.query = NULL,
       # because the pvalue is defined as float(4) in postgres
       if  (corr$p.value < 5.60519e-45) corr$p.value <- 0
       
-      statement <- paste("INSERT INTO ", to.table, " VALUES ('",
+      statement <- paste0("INSERT INTO ", to.table, " VALUES ('",
                          x_probe_name, "', '", y_probe_name, "', ",
-                         corr$estimate, ",", corr$p.value, ");", sep =  "")
+                         corr$estimate, ",", corr$p.value, ");")
       
       dbSendQuery(con1, statement)
     }
@@ -829,16 +859,15 @@ corFromTableToTable <- function (drv, ..., from.table = NULL, from.query = NULL,
   # Get dataframes from the database
   cat('\nGetting data from database ')
   system('date')
-  #x_rs <- dbGetQuery(con, paste('SELECT * FROM', from.table))
   
   # this fetches the sample names
   # x_rs <- dbGetQuery(con,
-  #                    "SELECT 'SELECT ' || array_to_string(ARRAY(SELECT 'o' || '.' || c.column_name
+  #                    "SELECT 'SELECT ' || array_to_string(ARRAY(SELECT c.column_name
   #                     FROM information_schema.columns As c
   #                     WHERE c.table_name = 'humanmethylation450' 
   #                       AND c.table_schema = 'coad'
-  #                       AND  c.column_name NOT IN('chromosome', 'genomic_coordinate_hg19')
-  #                     ), ',') || ' FROM humanmethylation450 AS data' AS sqlstmt; ")
+  #                       AND  c.column_name ~ '^TCGA_' 
+  #                     ), ',') || ' FROM humanmethylation450 WHERE chromosome = 22' AS sqlstmt; ")
   
   
   
@@ -909,9 +938,15 @@ if("--help" %in% args) {
       readPath and writePath are \"~/\" by default.
       
       Examples:
-      \"readPath <- \\\"$PATH\\\" #Establishes the path from which files are read.\"
-      \"writePath <- readPath #Establishes the path where files will be written as the readPath.\"
-      \"download(\\\"coad\\\", \\\"humanmethylation450\\\") #Downloads all the colon adenocarcinoma Illumina Infinium Human DNA Methylation 450 arrays data from the TCGA.\"
+      Establishes the path from which files are read.
+      \"readPath <- \\\"$PATH\\\"\"
+
+      Establishes the path where files will be written as the readPath.
+      \"writePath <- readPath\"
+
+      Downloads all the colon adenocarcinoma Illumina Infinium Human DNA Methylation 450 arrays data
+      from the TCGA.
+      \"download(\\\"coad\\\", \\\"humanmethylation450\\\")\"
       
       --help      - Display this help page
       \n")
