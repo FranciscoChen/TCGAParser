@@ -7,9 +7,6 @@
 \description{
   Print the code to create the table in the PostgreSQL
   database (needs the sampleinfo file from filterBarcodes).
-  It also outputs the code in writePath/createTable.txt.
-}
-\details{
-  The print will be displayed on the console.
+  It also outputs the code in writePath/*createTable.txt.
 }
 

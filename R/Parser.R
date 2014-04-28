@@ -123,6 +123,8 @@ fixDataframe <- function(dataframe, array) {
                data <- dataframe[-grepRow,]
                # Removes all the rs probes.
                data <- data[-grep("rs", data[,1]),]
+               # Renames first column as "probe".
+               colnames(data)[colnames(data) == "Composite Element REF"] <- "probe"
                return (data)
              }
            }
@@ -155,7 +157,7 @@ init <- function (cancer, array){
            value <<- "Beta_value"
            magetabArchiveRegexpr <<- "jhu-usc.edu_[[:alpha:]]{2,4}.HumanMethylation450.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "jhu-usc.edu_[[:alpha:]]{2,4}.HumanMethylation450.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-         },
+           },
          agilentg4502a_07_3 = {
            arrayPath <<- "/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.AgilentG4502A_07_3.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
@@ -165,17 +167,17 @@ init <- function (cancer, array){
            arrayPath <<- "/cgcc/unc.edu/illuminaga_rnaseq/rnaseq/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeq.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeq.[[:digit:]]+.sdrf.txt"
-         },
+           },
          illuminaga_rnaseqv2 = {
            arrayPath <<- "/cgcc/unc.edu/illuminaga_rnaseqv2/rnaseqv2/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeqV2.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeqV2.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-         },
+           },
          illuminahiseq_rnaseq = {
            arrayPath <<- "/cgcc/unc.edu/illuminahiseq_rnaseq/rnaseq/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeq.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeq.[[:digit:]]+.sdrf.txt"
-         },
+           },
          illuminahiseq_rnaseqv2 = {
            arrayPath <<- "/cgcc/unc.edu/illuminahiseq_rnaseqv2/rnaseqv2/"
            archiveRegexpr <<- "unc.edu_[[:alpha:]]*.IlluminaHiSeq_RNASeqV2.Level_3.[0-9]+.7.[0-9]/"
@@ -184,12 +186,12 @@ init <- function (cancer, array){
            value <<- "RPKM"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeqV2.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeqV2.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-         },
+           },
          illuminahiseq_totalrnaseqv2 = {
            arrayPath <<- "/cgcc/unc.edu/illuminahiseq_totalrnaseqv2/totalrnaseqv2/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_TotalRNASeqV2.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_TotalRNASeqV2.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-         }
+           }
          )
 }
 
@@ -219,12 +221,14 @@ download <- function(cancer, array){
            humanmethylation450 = {
              reference[colnames(reference) == "Gene_Symbol"] <- NULL
              reference[colnames(reference) == "Genomic_Coordinate"] <- NULL
+             
              annotations <- getDataframe(
                "www.ncbi.nlm.nih.gov//geo/query/acc.cgi?mode=raw&is_datatable=true&acc=GPL16304&id=47833&db=GeoDb_blob89"
-               )
-             reference <- cbind(reference, annotations$Closest_TSS)
-             reference <- cbind(reference, annotations$Distance_closest_TSS)
-             reference <- cbind(reference, annotations$Closest_TSS_gene_name)
+             )
+             reference <- cbind(reference, annotations[colnames(annotations) == "Closest_TSS"])
+             reference <- cbind(reference, annotations[colnames(annotations) == "Distance_closest_TSS"])
+             reference <- cbind(reference, annotations[colnames(annotations) == "Closest_TSS_gene_name"])
+             
              require("FDb.InfiniumMethylation.hg19")
              annotations <- get450k()
              annotations <- as.data.frame(annotations)
@@ -237,7 +241,7 @@ download <- function(cancer, array){
            illuminahiseq_rnaseqv2 = {
              reference[colnames(reference) == "raw_counts"] <- NULL
              reference[colnames(reference) == "median_length_normalized"] <- NULL
-             exon <- "^chr([0123456789XY]+):([[:digit:]]*)-([[:digit:]]*):([[:punct:]])$"
+             exon <- "^chr(.*):([[:digit:]]*)-([[:digit:]]*):([[:punct:]])$"
              reference$chromosome <- apply(reference[,1, drop = FALSE], 2,
                                            function(x) as.character(gsub(exon, "\\1", x)))
              reference$start <- apply(reference[,1, drop = FALSE], 2,
@@ -471,18 +475,27 @@ generatePairingTable <- function () {
   
   barcodePairing <- as.data.frame (matrix(nrow = length(cancerNames), ncol = 7))
   rownames(barcodePairing) = cancerNames
-  colnames(barcodePairing) <- c("humanmethylation450", "agilentg4502a_07_3", "illuminaga_rnaseq", "illuminaga_rnaseqv2",
-                                "illuminahiseq_rnaseq", "illuminahiseq_rnaseqv2", "illuminahiseq_totalrnaseqv2")
+  colnames(barcodePairing) <- c("humanmethylation450", "agilentg4502a_07_3",
+                                "illuminaga_rnaseq", "illuminaga_rnaseqv2",
+                                "illuminahiseq_rnaseq", "illuminahiseq_rnaseqv2",
+                                "illuminahiseq_totalrnaseqv2")
   
   for (i in 1:length(cancerNames)){
     
-    tryCatch(data1 <- getBarcodes(cancerNames[[i]][[1]], "humanmethylation450"), error = function(e) {warning(e, immediate. = TRUE)})
-    tryCatch(data2 <- getBarcodes(cancerNames[[i]][[1]], "agilentg4502a_07_3"), error = function(e) {warning(e, immediate. = TRUE)})
-    tryCatch(data3 <- getBarcodes(cancerNames[[i]][[1]], "illuminaga_rnaseq"), error = function(e) {warning(e, immediate. = TRUE)})
-    tryCatch(data4 <- getBarcodes(cancerNames[[i]][[1]], "illuminaga_rnaseqv2"), error = function(e) {warning(e, immediate. = TRUE)})
-    tryCatch(data5 <- getBarcodes(cancerNames[[i]][[1]], "illuminahiseq_rnaseq"), error = function(e) {warning(e, immediate. = TRUE)})
-    tryCatch(data6 <- getBarcodes(cancerNames[[i]][[1]], "illuminahiseq_rnaseqv2"), error = function(e) {warning(e, immediate. = TRUE)})
-    tryCatch(data7 <- getBarcodes(cancerNames[[i]][[1]], "illuminahiseq_totalrnaseqv2"), error = function(e) {warning(e, immediate. = TRUE)})
+    tryCatch(data1 <- getBarcodes(cancerNames[[i]][[1]], "humanmethylation450"),
+             error = function(e) {warning(e, immediate. = TRUE)})
+    tryCatch(data2 <- getBarcodes(cancerNames[[i]][[1]], "agilentg4502a_07_3"),
+             error = function(e) {warning(e, immediate. = TRUE)})
+    tryCatch(data3 <- getBarcodes(cancerNames[[i]][[1]], "illuminaga_rnaseq"),
+             error = function(e) {warning(e, immediate. = TRUE)})
+    tryCatch(data4 <- getBarcodes(cancerNames[[i]][[1]], "illuminaga_rnaseqv2"),
+             error = function(e) {warning(e, immediate. = TRUE)})
+    tryCatch(data5 <- getBarcodes(cancerNames[[i]][[1]], "illuminahiseq_rnaseq"),
+             error = function(e) {warning(e, immediate. = TRUE)})
+    tryCatch(data6 <- getBarcodes(cancerNames[[i]][[1]], "illuminahiseq_rnaseqv2"),
+             error = function(e) {warning(e, immediate. = TRUE)})
+    tryCatch(data7 <- getBarcodes(cancerNames[[i]][[1]], "illuminahiseq_totalrnaseqv2"),
+             error = function(e) {warning(e, immediate. = TRUE)})
     
     if (exists("data1", mode = "list")){
       data1$Comment..TCGA.Barcode. <- strtrim(data1$Comment..TCGA.Barcode., 16)
@@ -537,40 +550,63 @@ generatePairingTable <- function () {
               append = FALSE, sep = "\t", quote = FALSE)
 }
 
+
+#' Print code for PostgreSQL for probeinfo tables
+#' 
+#' Print the code to create the probeinfo table in the PostgreSQL database 
+#' (needs the dataframe file from function download).
+#' It also outputs the code in writePath/*createTable.txt.
+#' 
+#' @include init
+#' @usage printPostgreSQLCodeprobeinfo(cancer, array)
+printPostgreSQLCodeprobeinfo <- function (cancer, array){
+  init(cancer, array)
+  
+  code <- paste0("CREATE TABLE ", cancerName, ".", arrayName, "_probeinfo(")
+  probeinfo <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
+                          header = TRUE, sep = "\t")
+  
+  for (i in 1:length(colnames(probeinfo))){
+    n <- max(apply(probeinfo[,i, drop = FALSE], 1, nchar))
+    new <- paste0(colnames(probeinfo)[i]," VARCHAR(", n, "),")
+    code <- paste0(code, new)
+  }
+  code <- paste0(code, paste0("CONSTRAINT pk_", cancerName, "_", arrayName, "_", 
+                              colnames(probeinfo)[1], "PRIMARY KEY (", colnames(probeinfo)[1],"), "))
+
+  write(code, paste0(writePath, "/", cancerName, "_", arrayName, "_probeinfo_createTable.txt"))
+  return (code)
+}
+
 #' Print code for PostgreSQL
 #' 
 #' Print the code to create the table in the PostgreSQL database 
 #' (needs the sampleinfo file from filterBarcodes).
-#' It also outputs the code in writePath/createTable.txt.
+#' It also outputs the code in writePath/*createTable.txt.
 #' 
 #' @include init
 #' @usage printPostgreSQLCode(cancer, array)
-#' @details The print will be displayed on the console.
 printPostgreSQLCode <- function (cancer, array){
   init(cancer, array)
   samples <- read.table(paste0(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt"), 
                         sep = "\t", header = TRUE)
   
   code <- paste0("CREATE TABLE ", cancerName, ".", arrayName, "(")
-  switch(array,
-         humanmethylation450 = {
-           varchar <- "10"
-         },
-         illuminahiseq_rnaseqv2 = {
-           varchar <- "18"
-         }
-  )
-  probe <- paste0("probe VARCHAR(", varchar, "),")
+  probeinfo <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
+                          header = TRUE, sep = "\t")
+  varchar <- max(apply(probeinfo[,1, drop = FALSE], 1, nchar))
+  probe <- paste0(colnames(probeinfo)[1], " VARCHAR(", varchar, "),")
   code <- paste0(code, probe)
   for (i in 1:length(colnames(samples))){
     expression <- paste0(colnames(samples)[i], " FLOAT(4), ", collapse = NULL)
     code <- paste0(code, expression)
   }
-  code <- paste0(code, paste0("CONSTRAINT pk_", cancerName, "_probe PRIMARY KEY (probe), "))
-  code <- paste0(code, paste0("FOREIGN KEY (probe) REFERENCES ", 
-                              cancerName, ".", arrayName, "_probeinfo(probe));"))
+  code <- paste0(code, paste0("CONSTRAINT pk_", cancerName, "_", arrayName, "_", 
+                              colnames(probeinfo)[1],"PRIMARY KEY (", colnames(probeinfo)[1],"), "))
+  code <- paste0(code, paste0("FOREIGN KEY (", colnames(probeinfo)[1], ") REFERENCES ", 
+                              cancerName, ".", arrayName, "_probeinfo(", colnames(probeinfo)[1], "));"))
   
-  write(code,  paste0(writePath, "/", "createTable.txt"))
+  write(code, paste0(writePath, "/", cancerName, "_", arrayName, "_createTable.txt"))
   return (code)
 }
 
