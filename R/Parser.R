@@ -565,14 +565,24 @@ printPostgreSQLCodeprobeinfo <- function (cancer, array){
   code <- paste0("CREATE TABLE ", cancerName, ".", arrayName, "_probeinfo(")
   probeinfo <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
                           header = TRUE, sep = "\t")
-  
+  classes <- sapply(probeinfo, class)
   for (i in 1:length(colnames(probeinfo))){
-    n <- max(apply(probeinfo[,i, drop = FALSE], 1, nchar))
-    new <- paste0(colnames(probeinfo)[i]," VARCHAR(", n, "),")
+    switch(classes[i],
+           factor = {
+             n <- max(apply(probeinfo[,i, drop = FALSE], 1, nchar))
+             new <- paste0(colnames(probeinfo)[i]," VARCHAR(", n, "),")
+           },
+           integer = {
+             new <- paste0(colnames(probeinfo)[i]," INTEGER,")
+           },
+           numeric = {
+             new <- paste0(colnames(probeinfo)[i]," NUMERIC,")
+           }
+    )
     code <- paste0(code, new)
   }
   code <- paste0(code, paste0("CONSTRAINT pk_", cancerName, "_", arrayName, "_", 
-                              colnames(probeinfo)[1], "PRIMARY KEY (", colnames(probeinfo)[1],"), "))
+                              colnames(probeinfo)[1], " PRIMARY KEY (", colnames(probeinfo)[1],")); "))
 
   write(code, paste0(writePath, "/", cancerName, "_", arrayName, "_probeinfo_createTable.txt"))
   return (code)
@@ -602,7 +612,7 @@ printPostgreSQLCode <- function (cancer, array){
     code <- paste0(code, expression)
   }
   code <- paste0(code, paste0("CONSTRAINT pk_", cancerName, "_", arrayName, "_", 
-                              colnames(probeinfo)[1],"PRIMARY KEY (", colnames(probeinfo)[1],"), "))
+                              colnames(probeinfo)[1]," PRIMARY KEY (", colnames(probeinfo)[1],"), "))
   code <- paste0(code, paste0("FOREIGN KEY (", colnames(probeinfo)[1], ") REFERENCES ", 
                               cancerName, ".", arrayName, "_probeinfo(", colnames(probeinfo)[1], "));"))
   
