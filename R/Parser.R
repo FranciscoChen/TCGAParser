@@ -33,7 +33,7 @@ getLinks <- function (URL, REGEXPR){
         list[[i]][[2]] <- regmatches(links[linkIndices[i]], regexpr(
           "[[:alnum:]]{4}-[[:alnum:]]{2}-[[:alnum:]]{2}[[:blank:]][[:alnum:]]{2}[[:punct:]][[:alnum:]]{2}",
           links[linkIndices[i]]
-          ))
+        ))
       }
       return (list)
     }
@@ -45,12 +45,12 @@ getLinks <- function (URL, REGEXPR){
 #' Download a file as a temporary .txt file in the working directory and read it into R as a data frame.
 #' 
 #' @usage getDataframe(URL, header = TRUE, sep = "\t", quote = "\"'", dec = ".", 
-#' row.names, col.names, as.is = !stringsAsFactors, na.strings = "NA", 
-#' colClasses = NA, nrows = -1, skip = 0, check.names = TRUE, 
-#' fill = !blank.lines.skip, strip.white = FALSE, blank.lines.skip = TRUE, 
-#' comment.char = "#", allowEscapes = FALSE, flush = FALSE, 
-#' stringsAsFactors = default.stringsAsFactors(), fileEncoding = "", 
-#' encoding = "unknown", text)
+#'                     row.names, col.names, as.is = !stringsAsFactors, na.strings = "NA", 
+#'                     colClasses = NA, nrows = -1, skip = 0, check.names = TRUE, 
+#'                     fill = !blank.lines.skip, strip.white = FALSE, blank.lines.skip = TRUE, 
+#'                     comment.char = "#", allowEscapes = FALSE, flush = FALSE, 
+#'                     stringsAsFactors = default.stringsAsFactors(), fileEncoding = "", 
+#'                     encoding = "unknown", text)
 #' @param URL Link to a text file.
 #' @details The file is read with tab as separators and expecting a header. All other arguments are 
 #' as in read.table.
@@ -157,27 +157,27 @@ init <- function (cancer, array){
            value <<- "Beta_value"
            magetabArchiveRegexpr <<- "jhu-usc.edu_[[:alpha:]]{2,4}.HumanMethylation450.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "jhu-usc.edu_[[:alpha:]]{2,4}.HumanMethylation450.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-           },
+         },
          agilentg4502a_07_3 = {
            arrayPath <<- "/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.AgilentG4502A_07_3.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.AgilentG4502A_07_3.sdrf.txt"
-           },
+         },
          illuminaga_rnaseq = {
            arrayPath <<- "/cgcc/unc.edu/illuminaga_rnaseq/rnaseq/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeq.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeq.[[:digit:]]+.sdrf.txt"
-           },
+         },
          illuminaga_rnaseqv2 = {
            arrayPath <<- "/cgcc/unc.edu/illuminaga_rnaseqv2/rnaseqv2/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeqV2.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaGA_RNASeqV2.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-           },
+         },
          illuminahiseq_rnaseq = {
            arrayPath <<- "/cgcc/unc.edu/illuminahiseq_rnaseq/rnaseq/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeq.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeq.[[:digit:]]+.sdrf.txt"
-           },
+         },
          illuminahiseq_rnaseqv2 = {
            arrayPath <<- "/cgcc/unc.edu/illuminahiseq_rnaseqv2/rnaseqv2/"
            archiveRegexpr <<- "unc.edu_[[:alpha:]]*.IlluminaHiSeq_RNASeqV2.Level_3.[0-9]+.7.[0-9]/"
@@ -186,13 +186,13 @@ init <- function (cancer, array){
            value <<- "RPKM"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeqV2.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_RNASeqV2.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-           },
+         },
          illuminahiseq_totalrnaseqv2 = {
            arrayPath <<- "/cgcc/unc.edu/illuminahiseq_totalrnaseqv2/totalrnaseqv2/"
            magetabArchiveRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_TotalRNASeqV2.mage-tab.[[:digit:]]+.[[:digit:]]+.0/"
            magetabFileRegexpr <<- "unc.edu_[[:alpha:]]{2,4}.IlluminaHiSeq_TotalRNASeqV2.[[:digit:]]+.[[:digit:]]+.0.sdrf.txt"
-           }
-         )
+         }
+  )
 }
 
 #' Download data from the TCGA
@@ -298,7 +298,7 @@ download <- function(cancer, array){
 #' @return A data frame of the mage-tab file or NA.
 getBarcodes <- function (cancer, array){
   init(cancer, array)
-    archives <- getLinks(paste0(accessRoot, cancerName, arrayPath), magetabArchiveRegexpr)
+  archives <- getLinks(paste0(accessRoot, cancerName, arrayPath), magetabArchiveRegexpr)
   if (length(archives) > 0){
     if (length(archives) > 1){
       # Get the most recent one.
@@ -404,8 +404,8 @@ filterBarcodes <- function (cancer, array){
   }
   probeinfo <- read.table(paste0(readPath, "/", cancerName, "_dataframe_", arrayName, ".txt"),
                           header = TRUE, sep = "\t")
-  write.table(probeinfo, paste0(writePath, "/", cancerName, "_probeinfo_", arrayName, "_to_SQL.txt"),
-              quote = FALSE, sep = "\t", col.names = FALSE, row.names = FALSE)
+  write.table(probeinfo, paste0(writePath, "/", cancerName, "_probeinfo_", arrayName, "_to_SQL.csv"),
+              quote = FALSE, sep = ",", col.names = FALSE, row.names = FALSE)
   rm(probeinfo)
   all <- all[,-1]
   all <- all[,order(colnames(all))]
@@ -417,8 +417,8 @@ filterBarcodes <- function (cancer, array){
                    header = TRUE, sep = "\t")
   id <- id[,1, drop = FALSE]
   all <- cbind (id, all)
-  write.table(all, paste0(writePath, "/", cancerName, "_", arrayName, "_to_SQL.txt"),
-              quote = FALSE, sep = "\t", col.names = FALSE, row.names = FALSE)
+  write.table(all, paste0(writePath, "/", cancerName, "_", arrayName, "_to_SQL.csv"),
+              quote = FALSE, sep = ",", col.names = FALSE, row.names = FALSE)
   rm(all)
   gc()
 }
@@ -437,22 +437,22 @@ analyzeNAs <- function (cancer, array){
   init(cancer, array)
   df <- read.table(paste0(readPath, "/", cancerName, "_", arrayName, "_to_SQL.txt"),
                    sep = "\t", header = TRUE)
-   
+  
   probeTable <- as.data.frame (matrix(nrow = nrow(df), ncol = 3))
   sampleTable <- as.data.frame (matrix(nrow = 2, ncol = ncol(df[,2:ncol(df)])))
-    
+  
   probeTable[,1] <- df[,1]
   probeTable[,2] <- apply(df[,2:ncol(df)], 1, function(z) sum(is.na(z)))
   probeTable[,3] <- apply(df[,2:ncol(df)], 1, function(z) sd(z, na.rm=TRUE))
-    
+  
   write.table(probeTable, paste0(writePath, "/", cancerName, "_", arrayName, "_probe_NA_sd.txt"),
               append = FALSE, sep = "\t", quote = FALSE)
-
+  
   samples <- read.table(paste0(readPath, "/", cancerName, "_sampleinfo_", arrayName, "_to_SQL.txt"),
                         sep = "\t", header = TRUE)
   sampleTable[1,] <- colnames(samples)
   sampleTable[2,] <- apply(df[,2:ncol(df)], 2, function(z) sum(is.na(z)))
-    
+  
   write.table(sampleTable, paste0(writePath, "/", cancerName, "_", arrayName, "_sample_NA.txt"),
               append = FALSE, sep = "\t", quote = FALSE) 
 }
@@ -471,7 +471,7 @@ generatePairingTable <- function () {
   cancerNames <- getLinks(
     "https://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/",
     "^[[:alpha:]]{2,4}/"
-    )
+  )
   
   barcodePairing <- as.data.frame (matrix(nrow = length(cancerNames), ncol = 7))
   rownames(barcodePairing) = cancerNames
@@ -582,8 +582,8 @@ printPostgreSQLCodeprobeinfo <- function (cancer, array){
     code <- paste0(code, new)
   }
   code <- paste0(code, paste0("CONSTRAINT pk_", cancerName, "_", arrayName, "_", 
-                              colnames(probeinfo)[1], " PRIMARY KEY (", colnames(probeinfo)[1],")); "))
-
+                              colnames(probeinfo)[1], " PRIMARY KEY (", colnames(probeinfo)[1],"));"))
+  
   write(code, paste0(writePath, "/", cancerName, "_", arrayName, "_probeinfo_createTable.txt"))
   return (code)
 }
@@ -625,46 +625,51 @@ printPostgreSQLCode <- function (cancer, array){
 #' Do correlations of tables stored in PostgreSQL and store significant correlations 
 #' in another PostrgreSQL table.
 #' 
-#' @include init
-#' @usage corFromTableToTable(drv, ..., from.query = NULL, and.query = NULL, 
-#' to.table = NULL, stdev.threshold.from = 0, stdev.threshold.and = 0, pval.threshold = 1, nthreads = 1)
+#' @usage corFromTableToTable(drv, ..., from.schema = NULL, from.table = NULL, from.join = NULL,
+#'                            from.condition = NULL, and.schema = NULL, and.table = NULL, and.join = NULL,
+#'                            and.condition = NULL, to.schema = NULL, to.table = NULL, 
+#'                            stdev.threshold.from = 0, stdev.threshold.and = 0, pval.threshold = 1, 
+#'                            corr.threshold = 0.50, nthreads = 1)
+#' @param drv A character string specifying the database management system driver, "PostgreSQL".
+#' @param ... Arguments needed to connect to the database, such as user, password, dbname, host, port, etc.
+#' @param from.schema PostgreSQL schema where the first table is.
+#' @param from.table PostgreSQL input table name.
+#' @param from.join Optional: a complementary PostgreSQL schema.table for the input.
+#' @param from.condition Everything that comes after the PostgreSQL WHERE (at input).
+#' @param and.schema Optional: a second PostgreSQL schema to correlate with.
+#' @param and.table Optional: a second PostgreSQL table name.
+#' @param and.join Optional: a complementary PostgreSQL schema.table for the second input.
+#' @param and.condition Everything that comes after the PostgreSQL WHERE (for the second input).
+#' @param to.schema PostgreSQL schema that contains the output table.
+#' @param to.table PostgreSQL output table name.
+#' @param stdev.threshold.from Filters out all rows containing values with lower standard deviation 
+#' than the specified threshold (in the first input).
+#' @param stdev.threshold.and Filters out all rows containing values with lower standard deviation
+#' than the specified threshold (in the second input).
+#' @param pval.threshold Correlations with a p-value equal or lower than this threshold will be
+#' registered in the output.
+#' @param corr.threshold Correlations with an absolute correlation value equal or higher than 
+#' this threshold will be registered in the output.
+#' @param nthreads Number of threads this function will use. Allows hyperthreading.
 #' @details Requires parallel package.
-#'  drv
-#'    A character string specifying the database management system driver.
-#'  ...
-#'    Arguments needed to connect to the database, such as user, password, dbname, host, port, etc.
-#'  from.query
-#'    PostgreSQL statement to select or filter the data in a specified PostgreSQL table
-#'    for correlations.
-#'  and.query
-#'    PostgreSQL statement to select or filter the data in a second specified PostgreSQL table
-#'    for correlations.
-#'  to.table
-#'    PostgreSQL table where the significant correlations will be written.
-#'  stdev.threshold.from
-#'    Filters out all rows containing values with lower standard deviation than the specified threshold
-#'    (in from.query).
-#'  stdev.threshold.and
-#'    Filters out all rows containing values with lower standard deviation than the specified threshold 
-#'    (in and.query).
-#'  pval.threshold
-#'    Correlations with a p-value higher than this threshold will be considered significant and registered
-#'    in to.table.
-#'  nthreads
-#'    Number of threads this functions will use.
-corFromTableToTable <- function (drv, ..., from.query = NULL, and.query = NULL, 
-                                 to.table = NULL, stdev.threshold.from = 0, 
-                                 stdev.threshold.and = 0, pval.threshold = 1, nthreads = 1){
+#' @seealso http://www.postgresql.org/docs/
+corFromTableToTable <- function (drv, ..., from.schema = NULL, from.table = NULL, 
+                                 from.join = NULL, from.condition = NULL,
+                                 and.schema = NULL, and.table = NULL,
+                                 and.join = NULL, and.condition = NULL,
+                                 to.schema = NULL, to.table = NULL, stdev.threshold.from = 0, 
+                                 stdev.threshold.and = 0, pval.threshold = 1,
+                                 corr.threshold = 0.50, nthreads = 1){
   require(parallel)
   if (exists("dbConnect") == FALSE){
     require(RPostgreSQL)
   }
   con <- dbConnect(drv, ...)
-
+  
   if (is.null(con)) {
     stop("supply a connection")
   }
-  if (is.null(from.query)) {
+  if (is.null(from.table)) {
     stop("supply a table to read from")
   }
   if (is.null(to.table)) {
@@ -700,17 +705,18 @@ corFromTableToTable <- function (drv, ..., from.query = NULL, and.query = NULL,
   }
   
   # Do all probe correlations
-  correlation <- function (x, y, to.table, pval.threshold){
+  correlation <- function (x, y, to.schema, to.table, pval.threshold, corr.threshold){
     a <- as.numeric(x[-1])
     b <- as.numeric(y[-1])
     corr <- cor.test (a, b, method = "spearman")
     count <<- count + 1
-    if (corr$p.value <= pval.threshold) {
+    if (corr$p.value <= pval.threshold & abs(corr$estimate) >= corr.threshold) {
       x_probe_name <- x[1]
       y_probe_name <- y[1]
       if (!init){
         system('echo Initializing connection with PostgreSQL $(date)')
-        con1 <<- dbConnect(drv, ...)
+        drv <<- dbDriver("PostgreSQL")
+        con1 <<- dbConnect(drv, auth)
         dbSendQuery(con1, "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;")
         dbSendQuery(con1, 'BEGIN;')
         init <<- TRUE
@@ -719,9 +725,9 @@ corFromTableToTable <- function (drv, ..., from.query = NULL, and.query = NULL,
       # because the pvalue is defined as float(4) in postgres
       if  (corr$p.value < 5.60519e-45) corr$p.value <- 0
       
-      statement <- paste0("INSERT INTO ", to.table, " VALUES ('",
-                         x_probe_name, "', '", y_probe_name, "', ",
-                         corr$estimate, ",", corr$p.value, ");")
+      statement <- paste0("INSERT INTO ", to.schema, ".", to.table, " VALUES ('",
+                          x_probe_name, "', '", y_probe_name, "', ",
+                          corr$estimate, ",", corr$p.value, ");")
       
       dbSendQuery(con1, statement)
     }
@@ -906,24 +912,70 @@ corFromTableToTable <- function (drv, ..., from.query = NULL, and.query = NULL,
   cat('\nGetting data from database ')
   system('date')
   
-  # this fetches the sample names
-  # x_rs <- dbGetQuery(con,
-  #                    "SELECT 'SELECT ' || array_to_string(ARRAY(SELECT c.column_name
-  #                     FROM information_schema.columns As c
-  #                     WHERE c.table_name = 'humanmethylation450' 
-  #                       AND c.table_schema = 'coad'
-  #                       AND  c.column_name ~ '^TCGA_' 
-  #                     ), ',') || ' FROM humanmethylation450 WHERE chromosome = 22' AS sqlstmt; ")
+  pkquery <- paste0("SELECT pg_attribute.attname ",
+                    "FROM pg_index, pg_class, pg_attribute ",
+                    "WHERE pg_class.oid = '", from.schema, ".", from.table, "'::regclass ",
+                    "AND indrelid = pg_class.oid ",
+                    "AND pg_attribute.attrelid = pg_class.oid ",
+                    "AND pg_attribute.attnum = any(pg_index.indkey) ",
+                    "AND indisprimary;")
+  pk <- dbGetQuery(con, pkquery) # Get the primary key column name.
   
+  code <- paste0("SELECT ", from.table, ".", pk,", ")
   
+  squery <- paste0("SELECT array_to_string(ARRAY(SELECT ' ' || column_name ",
+                   "FROM information_schema.columns ",
+                   "WHERE table_name = '", from.table, "' ",
+                   "AND table_schema = '", from.schema, "' ",
+                   "AND column_name ~ '^tcga_'), ',');")
+  samples <- dbGetQuery(con, squery) # Get every column name matching the specified regular expression.
+  code <- paste0(code, samples)
+  code <- paste0(code, " FROM ", from.schema, ".", from.table)
+  if (!is.null(from.join)) {
+    code <- paste0(code, ", ", from.join)
+  }
+  if (!is.null(from.condition)) {
+    code <- paste0(code, " WHERE ", from.condition)
+  }
+  code <- paste0(code, ";")
+  # FROM coad.humanmethylation450, coad.humanmethylation450_probeinfo WHERE chromosome = '22';
   
-  x_rs <-  dbGetQuery(con, from.query)
+  x_rs <-  dbGetQuery(con, code)
   
   if (!is.null(and.table)) {
-    y_rs <- dbGetQuery(con, and.query)
+    pkquery <- paste0("SELECT pg_attribute.attname ",
+                      "FROM pg_index, pg_class, pg_attribute ",
+                      "WHERE pg_class.oid = '", and.schema, ".", and.table, "'::regclass ",
+                      "AND indrelid = pg_class.oid ",
+                      "AND pg_attribute.attrelid = pg_class.oid ",
+                      "AND pg_attribute.attnum = any(pg_index.indkey) ",
+                      "AND indisprimary;")
+    pk <- dbGetQuery(con, pkquery)
+    
+    code <- paste0("SELECT ", and.table, ".", pk,", ")
+    
+    squery <- paste0("SELECT array_to_string(ARRAY(SELECT ' ' || column_name ",
+                     "FROM information_schema.columns ",
+                     "WHERE table_name = '", and.table, "' ",
+                     "AND table_schema = '", and.schema, "' ",
+                     "AND column_name ~ '^tcga_'), ',');")
+    samples <- dbGetQuery(con, squery)
+    code <- paste0(code, samples)
+    code <- paste0(code, " FROM ", and.schema, ".", and.table)
+    if (!is.null(and.join)) {
+      code <- paste0(code, ", ", and.join)
+    }
+    if (!is.null(and.condition)) {
+      code <- paste0(code, " WHERE ", and.condition)
+    }
+    code <- paste0(code, ";")
+    # FROM coad.humanmethylation450, coad.humanmethylation450_probeinfo WHERE chromosome = '22';
+    
+    y_rs <-  dbGetQuery(con, code)
   }
   system('echo Finished getting data from database $(date)')
-  
+  cat('\nStarting dataset filtering ')
+  system('date')
   
   x_rs <- filter(x_rs, stdev.threshold.from)
   if (!is.null(and.table)) {
@@ -933,21 +985,27 @@ corFromTableToTable <- function (drv, ..., from.query = NULL, and.query = NULL,
   
   system('echo Making clusters $(date)')
   cluster <- makeCluster(nthreads)
-  clusterExport(cluster, "connect")
+  
+  #clusterExport(cluster, "connect")
   clusterEvalQ(cluster, library(RPostgreSQL))
   clusterEvalQ(cluster, init <- FALSE)
   clusterEvalQ(cluster, count <- 0)
+  auth<<-list(...)
+  clusterExport(cluster, "auth")
+  
   
   system('echo Starting parallel apply $(date)')
   
   if (!is.null(and.table)) {
     parApply(cl = cluster, X = x_rs, MARGIN = 1, FUN = apply2, Y = y_rs, DOMAIN = 1,
-             CTION = correlation, to.table = to.table, pval.threshold = pval.threshold)
+             CTION = correlation, to.schema = to.schema, to.table = to.table,
+             pval.threshold = pval.threshold, corr.threshold = corr.threshold)
     clusterEvalQ(cluster, dbSendQuery(con1, "COMMIT;"))
     stopCluster(cl = cluster)
   } else {
     parApply(cl = cluster, X = x_rs, MARGIN = 1, FUN = apply2half, Y = x_rs, DOMAIN = 1,
-             CTION = correlation, to.table = to.table, pval.threshold = pval.threshold)
+             CTION = correlation, to.schema = to.schema, to.table = to.table,
+             pval.threshold = pval.threshold, corr.threshold = corr.threshold)
     clusterEvalQ(cluster, dbSendQuery(con1, "COMMIT;"))
     stopCluster(cl = cluster)
   }
@@ -964,7 +1022,7 @@ args <- commandArgs(TRUE)
 if(length(args) < 2) {
   args <- c("--help")
 } else {  
-## Evaluate arguments
+  ## Evaluate arguments
   for (a in 2:length(args)){
     eval(parse(text = args[a]))
   }
@@ -978,7 +1036,7 @@ if("--help" %in% args) {
       All arguments will be evaluated as is, in the specified order:
       
       The arguments can be used to define variables and call functions.
-
+      
       For further information about functions and variables see the TCGA Parser documentation.
       
       readPath and writePath are \"~/\" by default.
